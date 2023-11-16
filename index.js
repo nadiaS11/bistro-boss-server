@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const app = express();
 require("dotenv").config();
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 // const jwt = require('jsonwebtoken')
 port = process.env.PORT || 5000;
@@ -28,12 +28,37 @@ async function run() {
 
     const menuCollection = client.db("practiceDB").collection("menu");
     const reviewCollection = client.db("practiceDB").collection("reviews");
+    const curtCollection = client.db("practiceDB").collection("curt");
 
     app.get("/menu", async (req, res) => {
       const result = await menuCollection.find().toArray();
       res.send(result);
     });
-
+    app.get("/cart", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const result = await curtCollection.find(query).toArray();
+      res.send(result);
+    });
+    app.put("/cart/:id", async (req, res) => {
+      const id = req.params.id;
+      const cartItem = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          name: cartItem.name,
+          recipe: cartItem.recipe,
+          image: cartItem.image,
+          category: cartItem.category,
+          price: cartItem.price,
+          email: cartItem.email,
+        },
+        $inc: { quantity: 1 },
+      };
+      const result = await curtCollection.updateOne(filter, updateDoc, options);
+      res.send(result);
+    });
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
